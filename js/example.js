@@ -1,7 +1,10 @@
 (function() {
 
   /*
-    TODO - linting
+    TODO -
+      linting
+      style the borders
+
 
    */
   var Example = this.Example = {};
@@ -22,9 +25,9 @@
           name: "features",
           attributes: [
             { name: "gender", type: "string" },
-            { name: "height", type: "float" },
-            { name: "weight", type: "float" },
-            { name: "age", type: "int" },
+            { name: "height", type: "float", aggregateType: "average"},  //spelling?
+            { name: "weight", type: "float", aggregateType: "average"},
+            { name: "age", type: "int", aggregateType: "sum"},
             { name: "has_nose", type: "bool" }
           ]
         }
