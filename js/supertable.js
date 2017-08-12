@@ -5,7 +5,6 @@
   var HeaderCell = Supertable.HeaderCell = Backbone.Model;
   var Table = Supertable.Table = Backbone.Model.extend({
     initialize: function() {
-      console.log(' Supertable initialize  ');
       this.originalRows = _.clone(this.get("rows"));
     },
     doTransforms: function() {
@@ -113,15 +112,11 @@
   var RowView = Supertable.RowView = BaseView.extend({
     tagName: "tr",
     className: "data-row",
-    initialize: function() {
-      console.log('>> initialize arguments: ', arguments);
-      // TODO: look for bbone examples with options
-      if (arguments[0].options && arguments[0].options.schema) { // todo FIX THIS probably with bbone view functions
-        console.log('FOUND arguments.options[0].options: ', arguments[0].options);
-        this.options = {
-          schema: arguments[0].options.schema
-        };
-      }
+    assignOptions: true,
+    initialize: function(options) {
+      this.options = {
+        schema: options.schema
+      };
     },
     render: function() {
       var that = this;
@@ -160,7 +155,6 @@
     initialize: function() {
       this.model.on("change:rows", this.renderRows, this);
       this.attributeConfigs = [];
-      console.log('>> initialize arguments: ', arguments);
       // TODO: look for bbone examples with options
         if (arguments[0].options && arguments[0].options.schema) { // todo FIX THIS probably with bbone view functions
           console.log('FOUND arguments.options[0].options: ', arguments[0].options);
@@ -203,11 +197,7 @@
       var that = this; // todo check common solution
       this.$("tr.data-row").remove();  //clear all
       _.each(that.model.get("rows"), function(item) {
-        var view = new RowView({model: new Data(item), options: {
-                                            schema: that.options.schema
-                                          }
-            // schema: that.options.schema
-        });
+        var view = new RowView({model: new Data(item), schema: that.options.schema });
         view.render().$el.insertAfter(this.$('.attributes')); // insert after this specific part of headr?
       }, this);
     },
@@ -219,7 +209,6 @@
         _.each(section.attributes, _.bind(function(attr) {
           if (attr.aggregateType) {
             td = $('<td>').text(attr.aggregateType);  // add a class?
-            //.attr("colspan", section.attributes.length);
           } else {
             td = $('<td>'); // add a class?
           }
@@ -230,15 +219,13 @@
     },
     renderAggregateValuesRows: function() {
       var that=this, td, aggVal; // todo check common solution
-      this.$("tr.aggregateValue").empty(); //.remove();  //clear all but not the row!
-
+      this.$("tr.aggregateValue").empty(); //clear all but not the row!
       _.each(that.options.schema.sections, _.bind(function(section) { //err?
         _.each(section.attributes, _.bind(function(attr) {
           console.log('renderAggregateValuesRows  attr: ', attr);
           if (attr.aggregateType) {
             aggVal = this.model.giveAggregation(section.name, attr.name, attr.type, attr.aggregateType);
             td = $('<td>').text(aggVal.toFixed(2));  // add a class?
-            //.attr("colspan", section.attributes.length);
           } else {
             td = $('<td>'); // add a class?
           }
