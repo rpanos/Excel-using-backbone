@@ -46,23 +46,38 @@
     values: function(section, attr) {
       return _.chain(this.get("rows")).pluck(section).pluck(attr).value();
     },
-    giveAggregation: function(section, attr, aggregationType) {
+    // possibly move these two to a untils class
+    intSum: function(values) {
+      var returnValue = 0;
+      values.forEach(function(cellValue){
+          returnValue += parseInt(cellValue);
+      });
+      return returnValue;
+    },
+    floatSum: function(values) {
+      var returnValue = 0;
+      values.forEach(function(cellValue){
+          returnValue += parseFloat(cellValue);
+      });
+      return returnValue;
+    },
+    giveAggregation: function(section, attr, numType, aggregationType) {
       /*
           TODO
         what about nulls!
         What about strings in wrong columns
        */
-      var values = this.values(section, attr), returnValue;
-      console.log('----- GOT VALUES ', values);
+      var values = this.values(section, attr), returnValue, sum;
+      // Move elsewhere if an aggregation does not require sum
+      if (numType == 'float') {
+        sum = this.floatSum(values);
+      } else if (numType == 'int') {
+        sum = this.intSum(values);
+      }
       if (aggregationType === 'sum') { //todo  compare to numeric types below
-        values.forEach(function(cellValue){
-          returnValue += cellValue;
-        });
+        returnValue = sum
       } else if (aggregationType === 'average') { //todo  compare to numeric types below
-        values.forEach(function(cellValue){
-          returnValue += cellValue;
-        });
-        returnValue = returnValue / values.length
+        returnValue = sum / values.length
       }
       // todo else return null? undefined?
       return returnValue;
@@ -127,41 +142,6 @@
     }
   });
 
-  var AggregatesView = Supertable.AggregatesView = BaseView.extend({
-    tagName: "tr", // TODO NO! but what?
-    className: "aggregate-area",
-    initialize: function() {
-      console.log('>> initialize arguments: ', arguments);
-      // TODO: look for bbone examples with options
-      if (arguments[0].options && arguments[0].options.schema) { // todo FIX THIS probably with bbone view functions
-        console.log('FOUND arguments.options[0].options: ', arguments[0].options);
-        this.options = {
-          schema: arguments[0].options.schema
-        };
-      }
-    },
-    render: function() {
-      var that = this;
-      // this.$el.empty(); // start over ;)
-
-      // Maybe have aggregates ready in model!
-
-      // _.each(that.options.schema.sections, _.bind(function(section) {
-      //   _.each(section.attributes, _.bind(function(attr) {
-      //     var val = this.model.get(section.name)[attr.name];
-      //     var td = $("<td>");
-      //     if (_.isNull(val) || _.isUndefined(val)) {
-      //       td.text("NULL").addClass("null");
-      //     } else {
-      //       td.text(val);
-      //     }
-      //     this.$el.append(td);
-      //   }, this));  // this - so that the inner vars apply to this view obj
-      // }, this));
-      return this;
-    }
-  });
-
   var AttributeConfig = Supertable.AttributeConfig = Backbone.Model.extend({
     numericTypes: ["int", "float"],
     isNumericType: function() {
@@ -191,7 +171,6 @@
     },
     render: function() {
       var that=this; // todo check common solution
-      console.log('>2> this.options: ', this.options);
       this.stopListening();
       BaseView.prototype.render.apply(this);
       _.each(that.options.schema.sections, _.bind(function(section) { //err?
@@ -217,10 +196,11 @@
       this.renderRows(); //note!
       // render bottom aggregates
       this.renderAggregateHeaderRows();
+      this.renderAggregateValuesRows();
       return this;
     },
     renderRows: function() {
-      var that=this; // todo check common solution
+      var that = this; // todo check common solution
       this.$("tr.data-row").remove();  //clear all
       _.each(that.model.get("rows"), function(item) {
         var view = new RowView({model: new Data(item), options: {
@@ -237,7 +217,6 @@
 
       _.each(that.options.schema.sections, _.bind(function(section) { //err?
         _.each(section.attributes, _.bind(function(attr) {
-          console.log('renderAggregateHeaderRows  attr: ', attr);
           if (attr.aggregateType) {
             td = $('<td>').text(attr.aggregateType);  // add a class?
             //.attr("colspan", section.attributes.length);
@@ -245,6 +224,25 @@
             td = $('<td>'); // add a class?
           }
           this.$('.aggregateHeader').append(td);
+
+        }, this));
+      }, this));
+    },
+    renderAggregateValuesRows: function() {
+      var that=this, td, aggVal; // todo check common solution
+      this.$("tr.aggregateValue").empty(); //.remove();  //clear all but not the row!
+
+      _.each(that.options.schema.sections, _.bind(function(section) { //err?
+        _.each(section.attributes, _.bind(function(attr) {
+          console.log('renderAggregateValuesRows  attr: ', attr);
+          if (attr.aggregateType) {
+            aggVal = this.model.giveAggregation(section.name, attr.name, attr.type, attr.aggregateType);
+            td = $('<td>').text(aggVal.toFixed(2));  // add a class?
+            //.attr("colspan", section.attributes.length);
+          } else {
+            td = $('<td>'); // add a class?
+          }
+          this.$('.aggregateValue').append(td);
 
         }, this));
       }, this));
