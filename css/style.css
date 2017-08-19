@@ -70,6 +70,15 @@ button.custom-filter {
   margin-bottom: 0.3em;
 }
 
+th .sort-arrows {
+  width: 25px;
+  float: right;
+}
+
+th .sort-arrows .up,
+th .sort-arrows .down {
+  font-size: 12px;
+}
 
 tr.data-row td,
 tr.aggregateValue td,
@@ -84,3 +93,27 @@ tr.aggregateHeader td {
 }
 
 /*border: 1px solid rgb(129, 132, 155);*/
+
+input.data-input.display-only {
+  display: none;
+}
+
+input.data-input.editable {
+  display: block;
+}
+
+.display-only input.data-input{
+  display: none;
+}
+
+.editable input.data-input {
+  display: block;
+}
+
+.display-only span {
+  display: block;
+}
+
+.editable span {
+  display: none;
+}

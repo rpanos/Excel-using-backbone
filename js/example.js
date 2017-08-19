@@ -2,9 +2,16 @@
 
   /*
     TODO -
-      linting
-      style the borders
 
+      TOP:
+        if the model is updating, why is it rendering wrong?
+
+      linting
+      arrow styles
+      remove all debug
+      rename row class names
+      move Vars
+      ROUNDED corners
 
    */
   var Example = this.Example = {};
@@ -107,12 +114,11 @@
       }
     ];
 
-    var table = new Supertable.Table({ rows: data });
+    var pubSub = _.extend({},Backbone.Events);
+    var table = new Supertable.Table({ rows: data, pubSub: pubSub});
     console.log(' Gonna do TableView w schema:', schema);
-    // var view = new Supertable.TableView({model: table, schema: schema}).render();
-    var view = new Supertable.TableView({model: table, options: {
-      schema: schema
-    }}).render();
+    var view = new Supertable.TableView({model: table,
+      schema: schema}).render();
 
     $('body').append(view.el);
   };

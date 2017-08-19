@@ -4,18 +4,31 @@
   var Data = Supertable.Data = Backbone.Model;
   var HeaderCell = Supertable.HeaderCell = Backbone.Model;
   var Table = Supertable.Table = Backbone.Model.extend({
-    initialize: function() {
+    initialize: function(options) {
+      var currId = 0;
       this.originalRows = _.clone(this.get("rows"));
+
+      this.originalRows.map(function(row){
+          row.id = currId;
+          currId++;
+          return row;
+      });
+
+      // move to events list? todo make this work!
+      this.on('change', this.redrawModel)
+    },
+    redrawModel: function() {
+      console.log('redrawModelredrawModelredrawModel');
     },
     doTransforms: function() {
       var newRows = _.clone(this.originalRows);
-      if (!_.isUndefined(this.currentSort)) {
-        newRows = this._sort.apply(this, this.currentSort)(newRows);  // currentSort = sort ags
+      if (!_.isUndefined(this.currentSortArgs)) {
+        newRows = this._sort.apply(this, this.currentSortArgs)(newRows);  // currentSortArgs = sort ags
       }
       this.set("rows", newRows);
     },
     sort: function(direction, section, attr) {
-      this.currentSort = arguments;  //???  just of this midget function?
+      this.currentSortArgs = arguments;
       this.doTransforms();
     },
     _sort: function(direction, section, attr) {
@@ -44,6 +57,16 @@
       // When used?  in aggregation!
     values: function(section, attr) {
       return _.chain(this.get("rows")).pluck(section).pluck(attr).value();
+    },
+    // todo DOCUMENT
+    setOneValue: function(section, attr, id, val) {
+      this.get("rows").map(function(row){
+          if (row.id === id) {
+              row[section][attr] = val; // todo can we use more get or underscore?
+              console.log('SET ', val);
+          }
+          return row;
+      });
     },
     // possibly move these two to a untils class
     intSum: function(values) {
@@ -93,20 +116,85 @@
 
   var HeaderCellView = Supertable.HeaderCellView = BaseView.extend({
     tagName: "th",
+      // TODO use better carats
+      // <span class="icon-sortable">&#9650;<br>&#9660;</span>
+      // <%= name %>
     template: _.template('<a class="name"><%= name %></a> \
-      <a class="up" href="#">^</a> \
-      <a class="down" href="#">v</a>'),
+     <div class="sort-arrows"><a class="up" href="#">&#9650;</a> \
+      <a class="down" href="#">&#9660;</a></div>'),
+      // 9660
+      // up
+    //   &#9650;
+    // &#9660;
+      // <a class="up" href="#">^</a> \
+      // <a class="down" href="#">v</a>'),
     events: {
       "click .up": "sortAsc",
       "click .down": "sortDesc",
     },
     sort: function(direction) {
-      // call the "main" sort with these three args!
+      // call the "main" sort with these three args ...
       this.trigger("sort", direction, this.model.get("section"), this.model.get("name"));
       return false;
     },
     sortAsc: function() { return this.sort("asc"); },
     sortDesc: function() { return this.sort("desc"); }
+  });
+
+  var DataCellView = Supertable.DataCellView = BaseView.extend({
+    tagName: "td",
+    // className: "display-only", // todo have another class?
+    template: _.template('<span></span>' +  // <%= val %>  ??
+        '<input class="data-input display-only" type="text"/>'),
+    initialize: function(options) {
+      if (options.section) {
+        this.options.section = options.section;
+      }
+      // todo confirm we need both
+        _.bindAll(this, 'updateModel');
+        _.bindAll(this, 'render');
+        this.render();
+    },
+    events: {
+      // todo remove unneeded
+      "click": "makeEditable",
+      // "focusout": "updateModel",
+      // "blur": "updateModel",
+        // stolen from https://stackoverflow.com/questions/20366768/backbone-event-firing-on-click-or-press-enter
+      "keyup" : "keyPressEventHandler"//, //#input-field-id"
+      // "keydown": "keyPressEventHandler"
+    },
+    render: function() {
+      this.$el.html(this.template());
+
+      if (_.isNull(this.model) || _.isUndefined(this.model.get('val'))) {
+        this.$el.find('span').text("NULL").addClass("null");
+        this.$el.find('input').val("NULL").addClass("null");
+      } else {
+        this.$el.find('span').text(this.model.get('val'));
+        this.$el.find('input').val(this.model.get('val'));
+      }
+    },
+
+    makeEditable: function() {
+      this.$el.removeClass('display-only');
+      this.$el.addClass('editable');
+    },
+    updateModel: function() {
+      this.$el.removeClass('editable');  // has access to
+      this.$el.addClass('display-only');
+
+      //sec, name, id, val
+      this.trigger('updateRowModel', this.model.get('section'), this.model.get('attr'),
+          this.model.get('rowId'), this.$el.find('input').val());
+    },
+    keyPressEventHandler : function(event){
+      console.log('keyPressEventHandler');
+      var code = event.keyCode || event.which;
+      if(code == 13){ //todo add more means to update!
+          this.updateModel();
+      }
+    }
   });
 
   var RowView = Supertable.RowView = BaseView.extend({
@@ -117,23 +205,30 @@
       this.options = {
         schema: options.schema
       };
+
     },
     render: function() {
       var that = this;
       this.$el.empty(); // start over ;)
       _.each(that.options.schema.sections, _.bind(function(section) {
         _.each(section.attributes, _.bind(function(attr) {
-          var val = this.model.get(section.name)[attr.name];
-          var td = $("<td>");
-          if (_.isNull(val) || _.isUndefined(val)) {
-            td.text("NULL").addClass("null");
-          } else {
-            td.text(val);
-          }
-          this.$el.append(td);
+          var cellVal = this.model.get(section.name)[attr.name];
+            // todo make sure nul rules are in cellView
+          var view = new DataCellView({model: new Data({
+                val: cellVal, rowId: this.model.id,
+                section: section.name, attr: attr.name
+            })
+          });
+
+          this.listenTo(view, 'updateRowModel', this.updateModelCell);
+          this.$el.append(view.el);
         }, this));  // this - so that the inner vars apply to this view obj
       }, this));
       return this;
+    },
+    updateModelCell: function(sec, name, id, val) {
+      // pass on in trigger to parent model
+      this.trigger('updateParentModel', sec, name, id, val);
     }
   });
 
@@ -152,21 +247,31 @@
     template: _.template('<tr class=\"header sections\"></tr>\
       <tr class=\"header attributes\"></tr><tr class=\"header aggregateHeader\"></tr>\
       <tr class=\"header aggregateValue\"></tr>'),
-    initialize: function() {
+    initialize: function(options) {
       this.model.on("change:rows", this.renderRows, this);
+
       this.attributeConfigs = [];
-      // TODO: look for bbone examples with options
-        if (arguments[0].options && arguments[0].options.schema) { // todo FIX THIS probably with bbone view functions
-          console.log('FOUND arguments.options[0].options: ', arguments[0].options);
-          this.options = {
-            schema: arguments[0].options.schema
-          };
+      this.options = {
+        schema: options.schema
+      };
+    },
+    events: {
+      // todo TBD!
+      // "keyup" : "keyPressEventHandler",
+      //   "keydown" : "keyPressEventHandler"
+    },
+    keyPressEventHandler : function(event) {
+        console.log('MAIN keyPressEventHandler');
+        var code = event.keyCode || event.which;
+        if (code == 13) {
+          console.log('MAIN ENTER keyPressEventHandler');
         }
     },
     render: function() {
       var that=this; // todo check common solution
       this.stopListening();
-      BaseView.prototype.render.apply(this);
+
+      BaseView.prototype.render.apply(this); //?
       _.each(that.options.schema.sections, _.bind(function(section) { //err?
         // HEADER HEADER
         var th = $('<th>').text(section.name).attr("colspan", section.attributes.length);
@@ -178,13 +283,13 @@
             section: section.name
           }));
           // just for test - would move
-          this.model.giveAggregation(section.name, attr.name, 'blah');
+          this.model.giveAggregation(section.name, attr.name);
 
           this.attributeConfigs.push(attributeConfig);
-          var view = new HeaderCellView({model: attributeConfig});
-          this.$('.attributes').append(view.render().el); // append to ROW
+          var headerView = new HeaderCellView({model: attributeConfig});
+          this.$('.attributes').append(headerView.render().el); // append to ROW
           // ties the headerView event 'sort' to this-view.sort (below)
-          this.listenTo(view, 'sort', _.bind(this.sort, this)); // ties the  . .
+          this.listenTo(headerView, 'sort', _.bind(this.sort, this)); // ties the  . .
         }, this));
       }, this));
       this.renderRows(); //note!
@@ -194,12 +299,25 @@
       return this;
     },
     renderRows: function() {
-      var that = this; // todo check common solution
+      var that = this, idCnt = 0; // todo check common solution
+
       this.$("tr.data-row").remove();  //clear all
       _.each(that.model.get("rows"), function(item) {
-        var view = new RowView({model: new Data(item), schema: that.options.schema });
+        var view = new RowView({
+          model: new Data(item),
+          schema: that.options.schema
+        });
+
+        this.listenTo(view, 'updateParentModel', this.updateModelCell);
+
         view.render().$el.insertAfter(this.$('.attributes')); // insert after this specific part of headr?
       }, this);
+    },
+    updateModelCell: function(sec, name, id, val) {
+      this.model.setOneValue(sec, name, id, val);
+
+      //onChange would be more universal!
+        this.render();
     },
     renderAggregateHeaderRows: function() {
       var that=this, td; // todo check common solution
