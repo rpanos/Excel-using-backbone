@@ -4,7 +4,6 @@
     TODO -
 
       TOP:
-        if the model is updating, why is it rendering wrong?
 
       linting
       arrow styles

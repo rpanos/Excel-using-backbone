@@ -70,14 +70,23 @@ button.custom-filter {
   margin-bottom: 0.3em;
 }
 
-th .sort-arrows {
-  width: 25px;
-  float: right;
+table {
+  border-collapse: separate;
 }
 
-th .sort-arrows .up,
-th .sort-arrows .down {
+th .sort-arrows {
+  width: 10px;
+  float: right;
+  margin-left: 18px;
+}
+
+th .sort-arrows .up {
   font-size: 12px;
+  line-height: 10px;
+}
+th .sort-arrows .down {
+  font-size: 9px;
+  line-height: 10px;
 }
 
 tr.data-row td,
@@ -90,6 +99,31 @@ tr.aggregateHeader td
 }
 tr.aggregateHeader td {
   border-top: 3px solid #D3D3D3;
+}
+
+td {
+  border: 1px solid #f6f6f6;
+
+  /*black;*/
+}
+
+td span {
+  margin-right: 10px; /*min space to righ border*/
+}
+
+
+
+.header.sections {
+  border-top-right-radius: 6px;
+  border-top-left-radius: 6px;
+}
+
+.section-header:last-child {
+  border-top-right-radius: 6px;
+}
+
+.section-header:first-child {
+  border-top-left-radius: 6px;
 }
 
 /*border: 1px solid rgb(129, 132, 155);*/

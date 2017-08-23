@@ -15,11 +15,11 @@
       });
 
       // move to events list? todo make this work!
-      this.on('change', this.redrawModel)
+      // this.on('change', this.redrawModel)
     },
-    redrawModel: function() {
-      console.log('redrawModelredrawModelredrawModel');
-    },
+    // redrawModel: function() {
+    //   console.log('redrawModelredrawModelredrawModel');
+    // },
     doTransforms: function() {
       var newRows = _.clone(this.originalRows);
       if (!_.isUndefined(this.currentSortArgs)) {
@@ -54,7 +54,6 @@
         return rows;
       };
     },
-      // When used?  in aggregation!
     values: function(section, attr) {
       return _.chain(this.get("rows")).pluck(section).pluck(attr).value();
     },
@@ -120,14 +119,16 @@
       // <span class="icon-sortable">&#9650;<br>&#9660;</span>
       // <%= name %>
     template: _.template('<a class="name"><%= name %></a> \
-     <div class="sort-arrows"><a class="up" href="#">&#9650;</a> \
-      <a class="down" href="#">&#9660;</a></div>'),
+     <div class="sort-arrows">\
+     <a class="up" href="#">&#x25B2;</a> \
+      <a class="down" href="#">&#x25BC;</a></div>\
+      '),
       // 9660
       // up
     //   &#9650;
     // &#9660;
       // <a class="up" href="#">^</a> \
-      // <a class="down" href="#">v</a>'),
+      // <a class="down" href="#">v</a>'),   &#9650;     &#9660;
     events: {
       "click .up": "sortAsc",
       "click .down": "sortDesc",
@@ -143,14 +144,14 @@
 
   var DataCellView = Supertable.DataCellView = BaseView.extend({
     tagName: "td",
-    // className: "display-only", // todo have another class?
+    // className: "display-only", // todo try this default?
     template: _.template('<span></span>' +  // <%= val %>  ??
         '<input class="data-input display-only" type="text"/>'),
     initialize: function(options) {
       if (options.section) {
         this.options.section = options.section;
       }
-      // todo confirm we need both
+      // todo confirm we need both - probably!
         _.bindAll(this, 'updateModel');
         _.bindAll(this, 'render');
         this.render();
@@ -191,7 +192,8 @@
     keyPressEventHandler : function(event){
       console.log('keyPressEventHandler');
       var code = event.keyCode || event.which;
-      if(code == 13){ //todo add more means to update!
+      // todo add more means to trigger the updateModel event
+      if(code == 13){
           this.updateModel();
       }
     }
@@ -199,7 +201,7 @@
 
   var RowView = Supertable.RowView = BaseView.extend({
     tagName: "tr",
-    className: "data-row",
+    className: "data-row", // 761
     assignOptions: true,
     initialize: function(options) {
       this.options = {
@@ -273,8 +275,8 @@
 
       BaseView.prototype.render.apply(this); //?
       _.each(that.options.schema.sections, _.bind(function(section) { //err?
-        // HEADER HEADER
-        var th = $('<th>').text(section.name).attr("colspan", section.attributes.length);
+        // HEADER section only
+        var th = $('<th class="section-header">').text(section.name).attr("colspan", section.attributes.length);
         this.$('.sections').append(th);
 
         _.each(section.attributes, _.bind(function(attr) {
@@ -283,7 +285,7 @@
             section: section.name
           }));
           // just for test - would move
-          this.model.giveAggregation(section.name, attr.name);
+          // this.model.giveAggregation(section.name, attr.name);
 
           this.attributeConfigs.push(attributeConfig);
           var headerView = new HeaderCellView({model: attributeConfig});
@@ -338,12 +340,12 @@
     renderAggregateValuesRows: function() {
       var that=this, td, aggVal; // todo check common solution
       this.$("tr.aggregateValue").empty(); //clear all but not the row!
-      _.each(that.options.schema.sections, _.bind(function(section) { //err?
+      _.each(that.options.schema.sections, _.bind(function(section) {
         _.each(section.attributes, _.bind(function(attr) {
           console.log('renderAggregateValuesRows  attr: ', attr);
           if (attr.aggregateType) {
             aggVal = this.model.giveAggregation(section.name, attr.name, attr.type, attr.aggregateType);
-            td = $('<td>').text(aggVal.toFixed(2));  // add a class?
+            td = $('<td>').text(aggVal.toFixed(2));  // todo add a class?
           } else {
             td = $('<td>'); // add a class?
           }
