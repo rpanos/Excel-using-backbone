@@ -7,12 +7,6 @@
         initialize: function (options) {
             var currId = 0;
             this.originalRows = _.clone(this.get("rows"));
-
-            // this.originalRows.map(function (row) {
-            //     row.id = currId;
-            //     currId++;
-            //     return row;
-            // });
         },
         doTransforms: function () {
             var newRows = _.clone(this.originalRows);
@@ -51,15 +45,6 @@
         values: function (section, attr) {
             return _.chain(this.get("rows")).pluck(section).pluck(attr).value();
         },
-        // todo DOCUMENT this
-        // setOneValue: function (section, attr, id, val) {
-        //     this.get("rows").map(function (row) {
-        //         if (row.id === id) {
-        //             row[section][attr] = val;
-        //         }
-        //         return row;
-        //     });
-        // },
         // possibly move these two to a untils class
         intSum: function (values) {
             var returnValue = 0;
@@ -206,11 +191,8 @@
             return this;
         },
         updateModelCell: function (sec, name, val) {
-            // pass on in trigger to parent model
-            // this.trigger('updateParentModel', sec, name, id, val);
 
-            // console.log("BEFORE ", this.model.get(sec));
-            // Note this did not fly -
+            // Note this did not trigger parent model change
             // this.model.get(sec).set({ name: val });
             // perhaps bc the sub object was not a bakcbone model itself?
 
@@ -236,11 +218,6 @@
       <tr class=\"header aggregateValue\"></tr>'),
         initialize: function (options) {
             this.model.on("change:rows", this.renderRows, this);
-
-            this.model.on("change", this.render, this);
-
-            // _.bindAll(this, "render");
-            // this.model.bind('change', this.render);
 
             this.attributeConfigs = [];
             this.options = {
@@ -272,14 +249,12 @@
                         attr: attr.name,
                         section: section.name
                     }));
-                    // just for test - would move
-                    // this.model.giveAggregation(section.name, attr.name);
 
                     this.attributeConfigs.push(attributeConfig);
                     headerView = new HeaderCellView({model: attributeConfig});
                     this.$('.attributes').append(headerView.render().el); // append to ROW
                     // ties the headerView event 'sort' to this-view.sort (below)
-                    this.listenTo(headerView, 'sort', _.bind(this.sort, this)); // ties the  . .
+                    this.listenTo(headerView, 'sort', _.bind(this.sort, this));
                 }, this));
             }, this));
             this.renderRows(); //note!
@@ -298,33 +273,21 @@
                     schema: that.options.schema
                 });
 
-                // this.listenTo(view, 'updateParentModel', this.updateModelCell);
-
-                // this.listenTo(view, 'checkParentModel', function() {
-                //     console.log(' THE model: ', that.model);
-                // });
-
                 this.listenTo(view, 'renderTable', this.render);
 
-                view.render().$el.insertAfter(this.$('.attributes')); // insert after this specific part of headr?
+                view.render().$el.insertAfter(this.$('.attributes'));
             }, this);
         },
-        // updateModelCell: function (sec, name, id, val) {
-        //     this.model.setOneValue(sec, name, id, val);
-        //
-        //     //onChange would be more universal!
-        //     this.render();
-        // },
         renderAggregateHeaderRows: function () {
             var that = this, td;
-            this.$("tr.aggregateHeader").empty(); //.remove();  //clear all but not the row!
+            this.$("tr.aggregateHeader").empty();
 
-            _.each(that.options.schema.sections, _.bind(function (section) { //err?
+            _.each(that.options.schema.sections, _.bind(function (section) {
                 _.each(section.attributes, _.bind(function (attr) {
                     if (attr.aggregateType) {
-                        td = $('<td>').text(attr.aggregateType);  // add a class?
+                        td = $('<td>').text(attr.aggregateType);
                     } else {
-                        td = $('<td>'); // add a class?
+                        td = $('<td>');
                     }
                     this.$('.aggregateHeader').append(td);
 
@@ -333,14 +296,14 @@
         },
         renderAggregateValuesRows: function () {
             var that = this, td, aggVal;
-            this.$("tr.aggregateValue").empty(); //clear all but not the row!
+            this.$("tr.aggregateValue").empty();
             _.each(that.options.schema.sections, _.bind(function (section) {
                 _.each(section.attributes, _.bind(function (attr) {
                     if (attr.aggregateType) {
                         aggVal = this.model.giveAggregation(section.name, attr.name, attr.type, attr.aggregateType);
                         td = $('<td>').text(aggVal.toFixed(2));
                     } else {
-                        td = $('<td>'); // add a class?
+                        td = $('<td>');
                     }
                     this.$('.aggregateValue').append(td);
 
@@ -348,7 +311,7 @@
             }, this));
         },
         sort: function (direction, section, attr) {
-            this.model.sort(direction, section, attr); // sort exists in model but event ties to view to re-render
+            this.model.sort(direction, section, attr);
         }
     });
 })();
