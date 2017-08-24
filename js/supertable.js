@@ -8,11 +8,11 @@
             var currId = 0;
             this.originalRows = _.clone(this.get("rows"));
 
-            this.originalRows.map(function (row) {
-                row.id = currId;
-                currId++;
-                return row;
-            });
+            // this.originalRows.map(function (row) {
+            //     row.id = currId;
+            //     currId++;
+            //     return row;
+            // });
         },
         doTransforms: function () {
             var newRows = _.clone(this.originalRows);
@@ -52,14 +52,14 @@
             return _.chain(this.get("rows")).pluck(section).pluck(attr).value();
         },
         // todo DOCUMENT this
-        setOneValue: function (section, attr, id, val) {
-            this.get("rows").map(function (row) {
-                if (row.id === id) {
-                    row[section][attr] = val;
-                }
-                return row;
-            });
-        },
+        // setOneValue: function (section, attr, id, val) {
+        //     this.get("rows").map(function (row) {
+        //         if (row.id === id) {
+        //             row[section][attr] = val;
+        //         }
+        //         return row;
+        //     });
+        // },
         // possibly move these two to a untils class
         intSum: function (values) {
             var returnValue = 0;
@@ -113,7 +113,7 @@
             <a class="down" href="#">&#x25BC;</a></div>'),
         events: {
             "click .up": "sortAsc",
-            "click .down": "sortDesc",
+            "click .down": "sortDesc"
         },
         sort: function (direction) {
             // call the "main" sort with these three args ...
@@ -166,7 +166,7 @@
 
             //sec, name, id, val
             this.trigger('updateRowModel', this.model.get('section'), this.model.get('attr'),
-                this.model.get('rowId'), this.$el.find('input').val());
+                this.$el.find('input').val());
         },
         keyPressEventHandler: function (event) {
             console.log('DataCellView keyPressEventHandler');
@@ -195,7 +195,7 @@
                     var cellVal = this.model.get(section.name)[attr.name],
                     view = new DataCellView({
                         model: new Data({
-                            val: cellVal, rowId: this.model.id,
+                            val: cellVal, //rowId: this.model.id,
                             section: section.name, attr: attr.name
                         })
                     });
@@ -205,10 +205,17 @@
             }, this));
             return this;
         },
-        updateModelCell: function (sec, name, id, val) {
+        updateModelCell: function (sec, name, val) {
             // pass on in trigger to parent model
-            this.trigger('updateParentModel', sec, name, id, val);
-            
+            // this.trigger('updateParentModel', sec, name, id, val);
+
+            // console.log("BEFORE ", this.model.get(sec));
+            // Note this did not fly -
+            // this.model.get(sec).set({ name: val });
+            // perhaps bc the sub object was not a bakcbone model itself?
+
+            this.model.get(sec)[name] = val;
+            this.trigger('renderTable');
         }
     });
 
@@ -229,6 +236,11 @@
       <tr class=\"header aggregateValue\"></tr>'),
         initialize: function (options) {
             this.model.on("change:rows", this.renderRows, this);
+
+            this.model.on("change", this.render, this);
+
+            // _.bindAll(this, "render");
+            // this.model.bind('change', this.render);
 
             this.attributeConfigs = [];
             this.options = {
@@ -277,7 +289,7 @@
             return this;
         },
         renderRows: function () {
-            var that = this, idCnt = 0;
+            var that = this;
 
             this.$("tr.data-row").remove();  //clear all
             _.each(that.model.get("rows"), function (item) {
@@ -286,17 +298,23 @@
                     schema: that.options.schema
                 });
 
-                this.listenTo(view, 'updateParentModel', this.updateModelCell);
+                // this.listenTo(view, 'updateParentModel', this.updateModelCell);
+
+                // this.listenTo(view, 'checkParentModel', function() {
+                //     console.log(' THE model: ', that.model);
+                // });
+
+                this.listenTo(view, 'renderTable', this.render);
 
                 view.render().$el.insertAfter(this.$('.attributes')); // insert after this specific part of headr?
             }, this);
         },
-        updateModelCell: function (sec, name, id, val) {
-            this.model.setOneValue(sec, name, id, val);
-
-            //onChange would be more universal!
-            this.render();
-        },
+        // updateModelCell: function (sec, name, id, val) {
+        //     this.model.setOneValue(sec, name, id, val);
+        //
+        //     //onChange would be more universal!
+        //     this.render();
+        // },
         renderAggregateHeaderRows: function () {
             var that = this, td;
             this.$("tr.aggregateHeader").empty(); //.remove();  //clear all but not the row!
